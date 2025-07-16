@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Text Extractor</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #2d3748;
+      /* Dark gray-blue */
+      --secondary-color: #4a5568;
+      /* Medium gray */
+      --accent-color: #3182ce;
+      /* Professional blue */
+      --background-color: #ffffff;
+      --card-background: #f7fafc;
+      --text-color: #2d3748;
+      --border-color: #e2e8f0;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="dark"] {
+      --primary-color: #e2e8f0;
+      --secondary-color: #a0aec0;
+      --accent-color: #63b3ed;
+      --background-color: #1a202c;
+      --card-background: #2d3748;
+      --text-color: #edf2f7;
+      --border-color: #4a5568;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 30px;
+      background-color: var(--card-background);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .upload-section {
+      margin-bottom: 20px;
+    }
+
+    .image-preview {
+      max-width: 100%;
+      max-height: 400px;
+      margin: 20px auto;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      object-fit: contain;
+    }
+
+    #imageInput {
+      padding: 10px 20px;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+    }
+
+    #imageInput:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+    }
+
+    #status {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--accent-color);
+      margin: 15px 0;
+      display: none;
+    }
+
+    #outputContainer {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      min-height: 150px;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--background-color);
+      font-size: 1rem;
+      line-height: 1.5;
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--accent-color);
+      color: var(--background-color);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #2b6cb0;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background-color: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    #languageSelect {
+      padding: 10px 15px;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+    }
+
+    #languageSelect:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+    }
+
+    .theme-toggle {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .theme-toggle label {
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .theme-toggle input {
+      margin-left: 5px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      button,
+      #languageSelect {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Image Text Extractor</h1>
+
+    <!-- Upload Input -->
+    <div class="upload-section">
+      <input type="file" id="imageInput" accept="image/*" />
+    </div>
+
+    <!-- Image Preview -->
+    <div id="previewContainer" style="display: none;">
+      <h3>Uploaded Image</h3>
+      <img id="preview" class="image-preview" alt="Uploaded image" />
+    </div>
+
+    <!-- Status -->
+    <div id="status" style="display: none;">Extracting text, please wait...</div>
+
+    <!-- Output -->
+    <div id="outputContainer" style="display: none;">
+      <h3>Extracted Text</h3>
+      <div id="output"></div>
+      <div class="controls">
+        <button id="downloadBtn" disabled>Download Text</button>
+        <button id="copyBtn" disabled>Copy to Clipboard</button>
+      </div>
+    </div>
+
+    <!-- Language Selection -->
+    <div class="controls">
+      <select id="languageSelect">
+        <option value="eng">English</option>
+        <option value="tam">Tamil</option>
+        <option value="hin">Hindi</option>
+        <option value="spa">Spanish</option>
+      </select>
+    </div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+      <label>
+        <input type="checkbox" id="darkModeToggle" checked /> Dark Mode
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
+    const outputContainer = document.getElementById('outputContainer');
+    const output = document.getElementById('output');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const languageSelect = document.getElementById('languageSelect');
+    const darkModeToggle = document.getElementById('darkModeToggle');
+
+    // Dark Mode Toggle
+    darkModeToggle.addEventListener('change', () => {
+      document.body.dataset.theme = darkModeToggle.checked ? 'dark' : 'light';
+      localStorage.setItem('theme', darkModeToggle.checked ? 'dark' : 'light');
+    });
+
+    // Set default dark mode and load saved theme
+    document.body.dataset.theme = 'dark'; // Default to dark mode
+    localStorage.setItem('theme', 'dark'); // Set initial storage value
+    if (localStorage.getItem('theme') === 'light') {
+      darkModeToggle.checked = false;
+      document.body.dataset.theme = 'light';
+    }
+
+    imageInput.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const imageData = reader.result;
+        preview.src = imageData;
+        previewContainer.style.display = 'block';
+        extractText(imageData);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function extractText(imageData) {
+      status.style.display = 'block';
+      outputContainer.style.display = 'none';
+      output.textContent = '';
+      downloadBtn.disabled = true;
+      copyBtn.disabled = true;
+
+      const lang = languageSelect.value;
+      Tesseract.recognize(
+        imageData,
+        lang,
+        {
+          logger: (info) => console.log(info)
+        }
+      ).then(({ data: { text } }) => {
+        status.style.display = 'none';
+        outputContainer.style.display = 'block';
+        output.textContent = text.trim();
+        downloadBtn.disabled = false;
+        copyBtn.disabled = false;
+      }).catch((err) => {
+        status.textContent = 'An error occurred while extracting text.';
+        console.error(err);
+      });
+    }
+
+    // Download Text
+    downloadBtn.addEventListener('click', () => {
+      const text = output.textContent;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'extracted_text.txt';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+
+    // Copy to Clipboard
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(output.textContent).then(() => {
+        alert('Text copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    });
+  </script>
+</body>
+
+</html>
